@@ -5,7 +5,12 @@ import streamlit as st
 from dotenv import load_dotenv
 
 from utils.export import build_revision_markdown
-from utils.gemini import GeminiConfigurationError, GeminiServiceError, generate_revision_pack
+from utils.gemini import (
+    GeminiConfigurationError,
+    GeminiServiceError,
+    generate_revision_pack,
+    resolve_api_key,
+)
 from utils.pdf_processor import PDFExtractionError, extract_pdf_text
 
 
@@ -32,13 +37,10 @@ load_css()
 @st.cache_resource(show_spinner=False)
 def get_api_key() -> str:
     try:
-        secret_key = st.secrets["GEMINI_API_KEY"].strip()
-    except Exception:
-        secret_key = ""
-    if secret_key and "PASTE" not in secret_key.upper():
-        return secret_key
-    environment_key = os.getenv("GEMINI_API_KEY", "").strip()
-    return "" if "PASTE" in environment_key.upper() else environment_key
+        secrets = st.secrets
+        return resolve_api_key(secrets, os.environ)
+    except FileNotFoundError:
+        return resolve_api_key({}, os.environ)
 
 
 def reset_generation() -> None:
@@ -171,6 +173,10 @@ def main() -> None:
                     st.error(str(exc))
                 except GeminiServiceError as exc:
                     st.error(str(exc))
+                    if exc.retry_after:
+                        st.caption(
+                            f"Please wait about {exc.retry_after} seconds before retrying."
+                        )
                 else:
                     st.session_state.revision_pack = pack
                     st.session_state.source_name = source_name

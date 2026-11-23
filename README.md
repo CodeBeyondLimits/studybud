@@ -17,6 +17,14 @@ Copy `.env.example` to `.env` if using the environment-variable fallback, or cre
 GEMINI_API_KEY = "PASTE_YOUR_NEW_GEMINI_API_KEY_HERE"
 ```
 
+The app defaults to the stable `gemini-3.8-flash` model and falls back to
+`gemini-3.6-flash` after temporary primary-model service failures. Override the
+models with `GEMINI_MODEL` and `GEMINI_FALLBACK_MODEL`; set the latter to an
+empty value to disable fallback. The app checks configured models against the
+models available to the configured API key before generation.
+See Google's [Gemini models documentation](https://ai.google.dev/gemini-api/docs/models)
+for current model status and capabilities.
+
 Run locally:
 
 ```powershell
