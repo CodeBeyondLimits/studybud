@@ -32,6 +32,7 @@ streamlit run app.py
 ```
 
 The application uses one centrally configured key; users never enter an API key.
+Generated revision packs can be downloaded as Markdown, plain text, or PDF.
 
 ## Streamlit Community Cloud
 

@@ -10,7 +10,13 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from google.genai import errors
-from utils.export import build_revision_markdown
+from pypdf import PdfReader
+
+from utils.export import (
+    build_revision_markdown,
+    build_revision_pdf,
+    build_revision_text,
+)
 from utils.gemini import (
     DEFAULT_GEMINI_FALLBACK_MODEL,
     DEFAULT_GEMINI_MODEL,
@@ -127,6 +133,21 @@ class RevisionPackTests(unittest.TestCase):
         self.assertIn("# STUDYBUD Revision Pack", markdown)
         self.assertIn("chapter.pdf", markdown)
         self.assertIn("Question 5", markdown)
+
+    def test_text_export_contains_complete_pack(self):
+        text = build_revision_text("chapter.pdf", VALID_PACK)
+        self.assertIn("Source: chapter.pdf", text)
+        self.assertIn("Question 5", text)
+        self.assertIn("Correct answer: A", text)
+        self.assertIn("Term 3", text)
+
+    def test_pdf_export_is_readable_and_contains_complete_pack(self):
+        pdf = build_revision_pdf("chapter.pdf", VALID_PACK)
+        pages = PdfReader(io.BytesIO(pdf)).pages
+        extracted_text = "\n".join(page.extract_text() or "" for page in pages)
+        self.assertIn("chapter.pdf", extracted_text)
+        self.assertIn("Question 5", extracted_text)
+        self.assertIn("Term 3", extracted_text)
 
     def test_invalid_pdf_is_handled(self):
         with self.assertRaises(PDFExtractionError):

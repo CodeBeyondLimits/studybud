@@ -4,12 +4,15 @@ from typing import Optional
 import streamlit as st
 from dotenv import load_dotenv
 
-from utils.export import build_revision_markdown
 from utils.gemini import (
     GeminiConfigurationError,
     GeminiServiceError,
     generate_revision_pack,
-    resolve_api_key,
+)
+from utils.export import (
+    build_revision_markdown,
+    build_revision_pdf,
+    build_revision_text,
 )
 from utils.pdf_processor import PDFExtractionError, extract_pdf_text
 
@@ -37,10 +40,17 @@ load_css()
 @st.cache_resource(show_spinner=False)
 def get_api_key() -> str:
     try:
-        secrets = st.secrets
-        return resolve_api_key(secrets, os.environ)
+        api_key = st.secrets["GEMINI_API_KEY"].strip()
     except FileNotFoundError:
-        return resolve_api_key({}, os.environ)
+        api_key = ""
+    except KeyError:
+        api_key = ""
+
+    if not api_key or "PASTE" in api_key.upper():
+        api_key = os.getenv("GEMINI_API_KEY", "").strip()
+    if "PASTE" in api_key.upper():
+        return ""
+    return api_key
 
 
 def reset_generation() -> None:
@@ -195,20 +205,34 @@ def main() -> None:
             st.markdown(f"<p><span class='bullet'></span>{point}</p>", unsafe_allow_html=True)
         st.markdown("</div>", unsafe_allow_html=True)
 
-        copy_col, download_col = st.columns(2)
+        copy_col, markdown_col, text_col, pdf_col = st.columns(4)
         with copy_col:
             if st.button("Copy summary", use_container_width=True):
                 copy_summary(summary_text)
-        with download_col:
-            markdown = build_revision_markdown(
-                st.session_state.get("source_name", "Revision pack"),
-                pack,
-            )
+        source_name = st.session_state.get("source_name", "Revision pack")
+        markdown = build_revision_markdown(source_name, pack)
+        with markdown_col:
             st.download_button(
-                "Download revision pack",
+                "Download Markdown",
                 data=markdown,
                 file_name="studybud_revision_pack.md",
                 mime="text/markdown",
+                use_container_width=True,
+            )
+        with text_col:
+            st.download_button(
+                "Download TXT",
+                data=build_revision_text(source_name, pack),
+                file_name="studybud_revision_pack.txt",
+                mime="text/plain",
+                use_container_width=True,
+            )
+        with pdf_col:
+            st.download_button(
+                "Download PDF",
+                data=build_revision_pdf(source_name, pack),
+                file_name="studybud_revision_pack.pdf",
+                mime="application/pdf",
                 use_container_width=True,
             )
 
